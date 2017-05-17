@@ -1,0 +1,5 @@
+WTF_CSRF_ENABLED = True
+SECRET_KEY = '6h5kf7psx05+-%kml2h!q)_vk901=*-s49c_qk2zol1p(n!h%z'
+SQLALCHEMY_DATABASE_URI = 'postgresql://localhost:5432/faizan'
+SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+SQLALCHEMY_POOL_SIZE=10

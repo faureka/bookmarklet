@@ -1,0 +1,18 @@
+{% extends "main.html" %}
+    {% block content %}
+        <form id="form" class="form" action="">
+            {{ form.hidden_tag() }}
+                <input type="text" id="username" value="" tabindex="1">Username: {{ form.username(size=80) }} </input>
+                <input type="password"id="password" value="" name="password" tabindex="2">Password: {{ form.password }}</input>
+                <input tabindex="3" type="submit" value="Sign In">
+        </form>
+    {% endblock %}
+    {% block scripts %}
+        <script>
+            $('#form').submit(function(e) {
+                e.preventDefault();
+                console.log($("#username").val());
+                console.log($("#password").val());
+            }); 
+        </script>
+    {% endblock %}

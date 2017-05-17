@@ -1,0 +1,52 @@
+{% extends "main.html" %}
+{% block content %}
+<br/>
+<br/>
+<div class="container">
+    <div class="float-md-left">
+      <a href='{{ "/?userid=" + userid }}'> Home </a>
+    </div>
+    <br/>
+    <table class="table">
+        <thead>
+            <tr>
+            <th>#</th>
+            <th>Post Url</th>
+            <th>Read Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+            <tr>
+            <th scope="row">{{ entry.id }}</th>
+            <td><a href= "{{ entry.url }}"> {{ entry.url }} </a></td>
+            {% if entry.read %}
+            <td> Read <button class="btn btn-info" id="{{ entry.id }}" onclick="unarchivePost(this);"> Unarchive </button>
+            </td>
+            {% else %}
+            <td> Unread <button class="btn btn-info" id="{{ entry.id }}" onclick="unarchivePost(this);"> UnArchive </button>
+            </td>
+            {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    var userid = '{{ userid }}';
+    function unarchivePost(cb){
+        $.ajax({
+            url:'/api/post/unarchive/'+userid+"/"+cb.id,
+            type:"GET",
+            success:function(e) {
+                setTimeout(function() {
+                    window.location.reload();
+                }, 200);
+            },
+            error:function(e){
+                console.log(e);
+            }
+        })
+    }
+</script>
+{% endblock %}

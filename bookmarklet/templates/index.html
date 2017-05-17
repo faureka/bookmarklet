@@ -1,0 +1,124 @@
+{% extends "main.html" %}
+{% block content %}
+<br/>
+<div class="container">
+    <div class="float-md-left">
+      <a href='{{ "/?userid=" + userid }}'> Home </a>
+    </div>
+    <div>
+      <div class="float-md-left">
+        <form id="urlpost" class="form-inline">
+          <div class="form-group mx-md-3">
+            <label for="url" class="sr-only">Url</label>
+            <input type="text" name="url" class="form-control" id="url" placeholder="url">
+          </div>
+          <button type="submit" class="btn btn-primary"> Submit </button>
+        </form>
+      </div>
+      <div class="float-md-right">
+        <form id="search" class="form-inline">
+          <div class="form-group mx-sm-3">
+            <label for="query" class="sr-only">Query</label>
+            <input type="text" name="query" class="form-control" id="query" placeholder="Query">
+          </div>
+          <button type="submit" class="btn btn-primary"> Search </button>
+        </form>
+      </div>
+      <div class="float-md-right">
+        <button class="btn btn-link"><a href='{{ "/archive?userid=" + userid }}'/>Archive</button>
+      </div>
+    </div>
+    <div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Post Url</th>
+            <th>Read Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in entries %}
+          <tr>
+            <th scope="row">{{ entry.id }}</th>
+            <td><a href= "{{ entry.url }}"> {{ entry.url }} </a></td>
+            {% if entry.read %}
+            <td> Read ( Unread <input type="checkbox" checked id="{{ entry.id }}" onclick="updateState(this);"/> ) 
+            <button class="btn btn-danger" id="{{ entry.id }}" onclick="deletePost(this);">Archive</button> </td>
+            {% else %}
+            <td> Unread <input type="checkbox" id="{{ entry.id }}" onclick="updateState(this);"/> 
+            <button class="btn btn-danger" id="{{ entry.id }}" onclick="deletePost(this);">Archive</button>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  <script>
+    var userId = '{{ userid }}';;
+    $("#urlpost").submit(function(e) {
+      e.preventDefault();
+      data = {}
+      data.url = $("#url").val();
+      $.ajax( {
+        url:"/api/post/" + userId,
+        type:"POST",
+        contentType:"application/json",
+        data: JSON.stringify(data),
+        success:function(e) {
+          $("#url").val('')
+          window.location.reload();
+        },
+        error:function(e) {
+          $("#url").val('')
+          window.location.reload();
+          console.log(e)
+        }
+      })
+    })
+
+    function updateState(cb) {
+      data = {}
+      data.status = cb.checked;
+      $.ajax({
+        url:"/api/post/status/" + userId + "/" + cb.id,
+        type:"PUT",
+        contentType:"application/json",
+        data:JSON.stringify(data),
+        success:function(e) {
+          setTimeout(function() {
+            window.location.reload();
+          }, 200);
+        },
+        error:function(e) {
+          console.log(e)
+        }
+      })
+    }
+
+    $("#search").submit(function(e) {
+      e.preventDefault();
+      console.log($("#query").val())
+      url = "/api/search"+"?q="+$("#query").val()+"&uid=" + userId
+      window.location.href = window.location.protocol + "//" + window.location.host + url;
+    })
+
+    function deletePost(cb) {
+      $.ajax({
+        url:"/api/post/status/"+userId+"/"+cb.id,
+        type:"DELETE",
+        success:function(e) {
+          setTimeout(function() {
+            window.location.reload();
+          })
+        },
+        error:function(e) {
+          console.log(e)
+        }
+      })
+    }
+    
+    </script>
+  </div>
+{% endblock %}
