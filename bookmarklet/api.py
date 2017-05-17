@@ -123,13 +123,6 @@ def verify_password(username_or_token, password):
     g.user = user
     return True
 
-# @app.route('/login', methods=['GET'])
-# def login():
-#     form = LoginForm()
-#     return render_template('login.html', 
-#                            title='Sign In',
-#                            form=form)
-
 @app.route('/',methods=["GET"])
 def index():
     user_id = request.args["userid"]
