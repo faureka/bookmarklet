@@ -1,19 +1,20 @@
-#!/usr/bin/env python
+#! /usr/local/bin python
 from __future__ import absolute_import
 import os
-from flask import Flask, abort, request, jsonify, g, url_for, render_template, send_from_directory
-from flask.ext.sqlalchemy import SQLAlchemy
-from flask.ext.httpauth import HTTPBasicAuth
-from flask import render_template, flash, redirect
-from sqlalchemy.dialects.postgresql import JSON
-from forms import LoginForm
 import bcrypt
+import ssl
+from flask import Flask, abort, request, jsonify, g, url_for, send_from_directory, render_template
+from flask_cors import CORS, cross_origin
+from flask_sqlalchemy import SQLAlchemy
+from flask_httpauth import HTTPBasicAuth
+from sqlalchemy.dialects.postgresql import JSON
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 
 # initialization
 app = Flask(__name__, static_url_path='', static_folder='static')
 app.config.from_pyfile('config.py')
+CORS(app)
 
 # extensions
 db = SQLAlchemy(app)
@@ -110,7 +111,6 @@ class Posts(db.Model, AutoSerialize):
         elif str == '0' or str == 'false' or str == 'f' or (isinstance(str,bool) and not str):
             return False
 
-
 @auth.verify_password
 def verify_password(username_or_token, password):
     # first try to authenticate by token
@@ -183,34 +183,31 @@ def get_resource():
         abort(400)
     return jsonify({'data': 'Hello, %s!' % user.username})
 
-@app.route('/api/post/<int:userid>',methods=['GET','POST','OPTIONS'])
+@app.route('/api/post/<int:userid>',methods=['GET','POST'])
 def add_post(userid):
     if request.method == 'POST':
-        post_url = request.json.get('url')
-        user_id = userid
-        if post_url is None and user_id is None:
-            abort(400)
-        if Posts.query.filter_by(url=post_url).first() is not None:
-            abort(400)
-        post = Posts(url=post_url,user_id=user_id)
-        post.set_read_status(False)
-        db.session.add(post)
-        db.session.commit()
-        response = app.make_response(jsonify({"post_url":post.url, "post_date_created": post.date_created}))
-        response.headers['Access-Control-Allow-Origin'] = "*"
-        response.headers['Access-Control-Allow-Headers'] = "Origin, X-Requested-With, Content-Type, Accept"
-        return jsonify({"post_url":post.url, "post_date_created": post.date_created})
+        try:
+            post_url = request.json.get('url')
+            user_id = userid
+            if post_url is None and user_id is None:
+                abort(400)
+            if Posts.query.filter_by(url=post_url).first() is not None:
+                abort(400)
+            post = Posts(url=post_url,user_id=user_id)
+            post.set_read_status(False)
+            db.session.add(post)
+            db.session.commit()
+            response = app.make_response(jsonify({"post_url":post.url, "post_date_created": post.date_created}))
+            return jsonify({"post_url":post.url, "post_date_created": post.date_created})
+        except Exception, e:
+            print e
+            return "error"
     if request.method == 'GET':
         user_id = userid
         posts = Posts.query.filter_by(user_id=user_id).order_by("read asc, date_created asc").all()
         posts = [post.get_public() for post in posts]
         response = jsonify({"posts":posts})
         response = app.make_response(response)
-        return response
-    if request.method == 'OPTIONS':
-        response = app.make_response("")
-        response.headers['Access-Control-Allow-Origin'] = "*"
-        response.headers['Access-Control-Allow-Headers'] = "Origin, X-Requested-With, Content-Type, Accept"
         return response
 
 @app.route('/api/post/status/<int:userid>/<int:postid>',methods=['GET','PUT','DELETE'])
@@ -290,5 +287,35 @@ def test_route():
 
 
 if __name__ == '__main__':
-    db.create_all()
-    app.run(debug=True)
+    context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    context.load_cert_chain('certs/ssl.cert','certs/ssl.key')
+    # db.create_all()
+    app.run(ssl_context=context, threaded=True)
+    # reactor_args = {}
+
+    
+    # def run_twisted_wsgi():
+    #     from twisted.internet import reactor,ssl
+    #     from twisted.web.server import Site
+    #     from twisted.web.wsgi import WSGIResource
+
+    #     class CtxFactory(ssl.ClientContextFactory):
+    #         def getContext(self):
+    #             self.method = ssl.SSL.SSLv23_METHOD
+    #             ctx = ssl.ClientContextFactory.getContext(self)
+    #             ctx.use_certificate_file('certs/ssl.crt')
+    #             ctx.use_privatekey_file('certs/ssl.key')
+    #             return ctx
+    #     resource = WSGIResource(reactor, reactor.getThreadPool(), app)
+    #     site = Site(resource)
+    #     reactor.connectSSL('localhost',5000, site, CtxFactory())
+    #     reactor.run(**reactor_args)
+        
+    # if app.debug:
+    #     # Disable twisted signal handlers in development only.
+    #     reactor_args['installSignalHandlers'] = 0
+    #     # Turn on auto reload.
+    #     import werkzeug.serving
+    #     run_twisted_wsgi = werkzeug.serving.run_with_reloader(run_twisted_wsgi)
+
+    # run_twisted_wsgi()

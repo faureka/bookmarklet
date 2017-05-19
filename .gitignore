@@ -1,0 +1,4 @@
+node_modules/
+*.out
+*.pyc
+.vs_code/

@@ -3,7 +3,7 @@
 <br/>
 <div class="container">
     <div class="float-md-left">
-      <a href='{{ "/?userid=" + userid }}'> Home </a>
+      <a href='{{ "/?userid=" + userid }}'/>Home</a>
     </div>
     <div>
       <div class="float-md-left">
@@ -25,12 +25,12 @@
         </form>
       </div>
       <div class="float-md-right">
-        <button class="btn btn-link"><a href='{{ "/archive?userid=" + userid }}'/>Archive</button>
-      </div>
+        <a href='{{ "/archive?userid=" + userid }}'/>Archive</a>
+    </div>
     </div>
     <div>
-      <table class="table">
-        <thead>
+      <table class="table table-responsive">
+        <thead class="thead-default">
           <tr>
             <th>#</th>
             <th>Post Url</th>

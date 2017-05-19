@@ -16,7 +16,7 @@ function getCurrentTabUrl(callback) {
 }
 
 function saveArticle(url, callback, errorCallback) {
-  var baseUrl = 'http://localhost:5000/api/post/1';
+  var baseUrl = 'https://localhost:5000/api/post/1';
   var x = new XMLHttpRequest();
   x.open('POST', baseUrl);
   x.responseType = 'json';
@@ -25,12 +25,11 @@ function saveArticle(url, callback, errorCallback) {
   x.onload = function() {
     var response = x.response;
     console.log(response);
-    if (!response || !response.responseData ||
-        response.responseData.results.length === 0) {
+    if (!response) {
       errorCallback('No response!');
       return;
     }
-    
+    renderStatus("saved URL: " + response.post_url);
     callback(response);
   };
   x.onerror = function() {
@@ -55,7 +54,6 @@ function processForm(e) {
     getCurrentTabUrl(function(url,title) {
         console.log(title);
         saveArticle(url, function(response) {
-        renderStatus(url);
         }, function(errorMessage) {
         renderStatus('Error ' + errorMessage);
         });

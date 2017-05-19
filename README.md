@@ -9,3 +9,4 @@
 - Make the chrome plugin frontend better
 - Add `Golang (Gin)` and `Elixir` backend
 - Shift to stateless architecture with `React` frontend
+- Add your slack username to get one article per day ( this can again be customized ) from your unread list
