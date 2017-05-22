@@ -7,7 +7,7 @@
       <a href='{{ "/?userid=" + userid }}'> Home </a>
     </div>
     <br/>
-    <table class="table">
+    <table id="article-list" class="table">
         <thead>
             <tr>
             <th>#</th>
@@ -33,6 +33,7 @@
     </table>
 </div>
 <script>
+    ($('#article-list').dataTable({searching:false}));
     var userid = '{{ userid }}';
     function unarchivePost(cb){
         $.ajax({

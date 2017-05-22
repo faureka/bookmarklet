@@ -1,4 +1,8 @@
-.DS_Store
+### macOS ###
+*.DS_Store
+.AppleDouble
+.LSOverride
+
 *.out
 *.py[cod]
 .vscode

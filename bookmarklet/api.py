@@ -149,7 +149,8 @@ def verify_password(username_or_token, password):
     return True
 
 @app.route('/',methods=["GET"])
-def index():
+@app.route('/<int:pageid>', methods=["GET"])
+def index(pageid=1):
     user_id = request.args["userid"]
     posts = Posts.query.filter_by(user_id=user_id).filter_by(status='Active').order_by("read asc, date_created asc").all()
     posts = [post.get_public() for post in posts]
