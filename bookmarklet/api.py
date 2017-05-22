@@ -20,7 +20,7 @@ except ImportError:
     from urlparse import urlparse
 
 # initialization
-app = Flask(__name__, static_url_path='', static_folder='static')
+app = Flask(__name__, static_url_path='/static', static_folder='static')
 app.config.from_pyfile('config.py')
 CORS(app)
 if not os.path.exists(os.path.abspath(".") + "/static/pdfs"):
@@ -350,4 +350,4 @@ def test_route():
 if __name__ == '__main__':
     context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
     context.load_cert_chain('certs/ssl.cert', 'certs/ssl.key')
-    app.run(ssl_context=context, threaded=True, port=5000)
+    app.run(threaded=True, port=5000)
