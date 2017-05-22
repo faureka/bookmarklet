@@ -35,6 +35,7 @@
             <th>#</th>
             <th>Post Url</th>
             <th>Read Status</th>
+            <th>Pdf</th>
           </tr>
         </thead>
         <tbody>
@@ -50,13 +51,20 @@
             <button class="btn btn-danger" id="{{ entry.id }}" onclick="deletePost(this);">Archive</button>
             </td>
             {% endif %}
+            <td>
+            {% if entry.filepath %}
+            <a target="_blank" href='{{ entry.filepath }}'> Read <i class="fa fa-external-link"></i></a>
+            {% else %}
+            <button class="btn btn-link" id="{{ entry.id }}" onclick="toPdf(this)"> Pdf </button>
+            {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   <script>
-    var userId = '{{ userid }}';;
+    var userId = '{{ userid }}';
     $("#urlpost").submit(function(e) {
       e.preventDefault();
       data = {}
@@ -111,10 +119,25 @@
         success:function(e) {
           setTimeout(function() {
             window.location.reload();
-          })
+          },200)
         },
         error:function(e) {
           console.log(e)
+        }
+      })
+    }
+
+    function toPdf(cb) {
+      $.ajax({
+        url:"/api/topdf/" + userId + "/" + cb.id,
+        type:"GET",
+        success: function(e) {
+          setTimeout(function() {
+            window.location.reload();
+          },200)
+        },
+        error : function(e) {
+          alert ( "Error occured : " + e);
         }
       })
     }

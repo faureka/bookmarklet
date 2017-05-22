@@ -3,7 +3,9 @@ from __future__ import absolute_import
 import os
 import bcrypt
 import ssl
-from flask import Flask, abort, request, jsonify, g, url_for, send_from_directory, render_template
+import subprocess
+import requests
+from flask import Flask, abort, request, jsonify, g, url_for, send_from_directory, render_template,redirect
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from flask_httpauth import HTTPBasicAuth
@@ -11,14 +13,24 @@ from sqlalchemy.dialects.postgresql import JSON
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    print " Python 2 env detected trying urlparse lib "
+    from urlparse import urlparse
+
 # initialization
 app = Flask(__name__, static_url_path='', static_folder='static')
 app.config.from_pyfile('config.py')
 CORS(app)
+if not os.path.exists(os.path.abspath(".") + "/static/pdfs"):
+    os.makedirs(os.path.abspath(".") + "/static/pdfs")
 
 # extensions
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
+
+#constants
 
 class AutoSerialize(object):
     'Mixin for retrieving public fields of model in json-compatible format'
@@ -88,9 +100,10 @@ class User(db.Model, AutoSerialize):
             return None
         return user
 
+
 class Posts(db.Model, AutoSerialize):
     __tablename__ = 'posts'
-    __public__ = ('id','user_id','url','read','tags')
+    __public__ = ('id','user_id','url','read','tags','filepath')
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=False)
     url = db.Column(db.String(255), index=True, unique=True)
@@ -99,7 +112,7 @@ class Posts(db.Model, AutoSerialize):
     status = db.Column(db.String(10), default='Active')
     date_created = db.Column(db.DateTime, server_default=db.func.current_timestamp())
     last_updated = db.Column(db.DateTime, server_default=db.func.current_timestamp())
-
+    filepath = db.Column(db.String(255))
     def set_read_status(self, status):
         self.read = status
         self.status = 'Active'
@@ -110,6 +123,18 @@ class Posts(db.Model, AutoSerialize):
             return True
         elif str == '0' or str == 'false' or str == 'f' or (isinstance(str,bool) and not str):
             return False
+    
+    @staticmethod
+    def get_pdf_file(url):
+        filepath = "/pdfs/" + url.split("/")[-1]
+        resp = requests.get(url, stream=True)
+        try:
+            with open('static' + filepath, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=200):
+                    f.write(chunk)
+            return filepath
+        except Exception, e:
+            return e
 
 @auth.verify_password
 def verify_password(username_or_token, password):
@@ -230,7 +255,7 @@ def update_post_status(userid, postid):
         post.status = 'Inactive'
         db.session.commit()
         return "ok"
-    post = Posts.query.filter_by(id=postid).first()
+    post = Posts.query.filter_by(id=postid).filter_by(user_id=userid).first()
     if post is None:
         abort(400)
     post.last_updated = db.func.current_timestamp()
@@ -276,6 +301,40 @@ def unarchive_post(userid, postid):
     db.session.commit()
     return ""
 
+
+@app.route('/api/topdf/<int:userid>/<int:postid>', methods=['GET'])
+def get_post_as_pdf(userid, postid):
+    posts = Posts.query.filter_by(user_id=userid).filter_by(id=postid).first()
+    if posts is None:
+        abort(400)
+    parsed_url = urlparse(posts.url)
+    url = parsed_url.scheme + "://" + parsed_url.netloc + parsed_url.path
+    if url.endswith(".pdf"):
+        filename = Posts.get_pdf_file(url)
+        print filename
+        if isinstance(filename, Exception):
+            abort(400)
+    else :
+        try:
+            if url.endswith("/"):
+                url = url[:-1]
+            if parsed_url.path.endswith(".html") or parsed_url.path.endswith(".htm") or parsed_url.path.endswith("."):
+                filename = "/pdfs/" + parsed_url.path.split("/")[-1].split(".")[0] + ".pdf"
+                print filename
+            else:
+                filename = "/pdfs/" + url.split("/")[-1] + '.pdf'
+            print_to_pdf = '--print-to-pdf=static' + filename
+            chrome_canary = '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary'
+            cmds = [chrome_canary, '--headless','--disable-gpu',print_to_pdf, url]
+            subprocess.call(cmds)
+        except Exception,e :
+            print(e)
+            abort(400, e)
+    posts.filepath = filename
+    db.session.commit()
+    return jsonify({"filepath": posts.filepath})
+
+
 @app.route('/api/test', methods=['GET'])
 def test_route():
     try:
@@ -286,36 +345,9 @@ def test_route():
 
 
 
+
+
 if __name__ == '__main__':
     context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    context.load_cert_chain('certs/ssl.cert','certs/ssl.key')
-    # db.create_all()
-    app.run(ssl_context=context, threaded=True)
-    # reactor_args = {}
-
-    
-    # def run_twisted_wsgi():
-    #     from twisted.internet import reactor,ssl
-    #     from twisted.web.server import Site
-    #     from twisted.web.wsgi import WSGIResource
-
-    #     class CtxFactory(ssl.ClientContextFactory):
-    #         def getContext(self):
-    #             self.method = ssl.SSL.SSLv23_METHOD
-    #             ctx = ssl.ClientContextFactory.getContext(self)
-    #             ctx.use_certificate_file('certs/ssl.crt')
-    #             ctx.use_privatekey_file('certs/ssl.key')
-    #             return ctx
-    #     resource = WSGIResource(reactor, reactor.getThreadPool(), app)
-    #     site = Site(resource)
-    #     reactor.connectSSL('localhost',5000, site, CtxFactory())
-    #     reactor.run(**reactor_args)
-        
-    # if app.debug:
-    #     # Disable twisted signal handlers in development only.
-    #     reactor_args['installSignalHandlers'] = 0
-    #     # Turn on auto reload.
-    #     import werkzeug.serving
-    #     run_twisted_wsgi = werkzeug.serving.run_with_reloader(run_twisted_wsgi)
-
-    # run_twisted_wsgi()
+    context.load_cert_chain('certs/ssl.cert', 'certs/ssl.key')
+    app.run(ssl_context=context, threaded=True, port=5000)
