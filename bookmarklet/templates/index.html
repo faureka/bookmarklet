@@ -1,7 +1,10 @@
 {% extends "main.html" %}
 {% block content %}
 <br/>
-<div class="container">
+<div class="container" style="position:relative">
+  <!--<div id="yourdiv" style="display:none; text-align:center;">
+    <div id="bannertext" style="background-color:#01549b; margin:0 auto; width: 100%;height: 40px;position: absolute;top: 0;left: 0; "> Text </div>
+  </div>-->
     <div class="float-md-left">
       <a href='{{ "/?userid=" + userid }}'/>Home</a>
     </div>
@@ -34,6 +37,7 @@
           <tr>
             <th>#</th>
             <th>Post Url</th>
+            <th>Rating</th>
             <th>Read Status</th>
             <th>Pdf</th>
           </tr>
@@ -42,7 +46,8 @@
           {% for entry in entries %}
           <tr>
             <th scope="row">{{ entry.id }}</th>
-            <td><a href= "{{ entry.url }}"> {{ entry.url }} </a></td>
+            <td><a target="_blank" href= "{{ entry.url }}"> {{ entry.url }} </a></td>
+            <td> {{ entry.ratings }}  </td>
             {% if entry.read %}
             <td> Read ( Unread <input type="checkbox" checked id="{{ entry.id }}" onclick="updateState(this);"/> ) 
             <button class="btn btn-danger" id="{{ entry.id }}" onclick="deletePost(this);">Archive</button> </td>
@@ -139,6 +144,26 @@
         },
         error : function(e) {
           alert ( "Error occured : " + e);
+        }
+      })
+    }
+
+    function updateRating(cb) {
+      $.ajax({
+        url:'/api/ratings/' + userId + "/" + cb.id,
+        type:'PUT',
+        data: JSON.stringify({"ratings":2.5}),
+        success: function(e) {
+          console.log(e);
+          var innerdiv = $("#bannertext")[0];
+          innerdiv.innerHTML = "<h4>Ratings for the post with Id:" + cb.id + " has been set</h4>";
+          $("#yourdiv").show();
+          setTimeout(function() {
+            $("#yourdiv").hide();
+          },2000);
+        },
+        error: function(e) {
+          console.log(e);
         }
       })
     }

@@ -16,7 +16,7 @@ function getCurrentTabUrl(callback) {
 }
 
 function saveArticle(url, callback, errorCallback) {
-  var baseUrl = 'https://localhost:8080/api/post/1';
+  var baseUrl = 'https://localhost:8081/api/post/1';
   var x = new XMLHttpRequest();
   x.open('POST', baseUrl);
   x.responseType = 'json';

@@ -19,6 +19,9 @@ except ImportError:
     print " Python 2 env detected trying urlparse lib "
     from urlparse import urlparse
 
+
+from helpers import *
+
 # initialization
 app = Flask(__name__, static_url_path='/static', static_folder='static')
 app.config.from_pyfile('config.py')
@@ -45,7 +48,7 @@ class AutoSerialize(object):
             if public and k not in public: continue
             if k in exclude: continue
             value = self._serialize(field.value)
-            if value:
+            if value or value == 0 or value == 0.0 :
                 data[k] = value
         return data
 
@@ -103,7 +106,7 @@ class User(db.Model, AutoSerialize):
 
 class Posts(db.Model, AutoSerialize):
     __tablename__ = 'posts'
-    __public__ = ('id','user_id','url','read','tags','filepath')
+    __public__ = ('id','user_id','url','read','tags','filepath','ratings')
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), unique=False)
     url = db.Column(db.String(255), index=True, unique=True)
@@ -113,9 +116,13 @@ class Posts(db.Model, AutoSerialize):
     date_created = db.Column(db.DateTime, server_default=db.func.current_timestamp())
     last_updated = db.Column(db.DateTime, server_default=db.func.current_timestamp())
     filepath = db.Column(db.String(255))
+    ratings = db.Column(db.Numeric(asdecimal= False, precision=10, scale=2,decimal_return_scale=None))
     def set_read_status(self, status):
         self.read = status
         self.status = 'Active'
+
+    def set_ratings(self, ratings = 2.5):
+        self.ratings = ratings
 
     @staticmethod
     def get_status_type(str):
@@ -213,6 +220,7 @@ def add_post(userid):
     if request.method == 'POST':
         try:
             post_url = request.json.get('url')
+            post_url = update_wikipedia_link(post_url)
             user_id = userid
             if post_url is None and user_id is None:
                 abort(400)
@@ -220,6 +228,7 @@ def add_post(userid):
                 abort(400)
             post = Posts(url=post_url,user_id=user_id)
             post.set_read_status(False)
+            post.set_ratings()
             db.session.add(post)
             db.session.commit()
             response = app.make_response(jsonify({"post_url":post.url, "post_date_created": post.date_created}))
@@ -291,6 +300,7 @@ def archived_post():
     posts = Posts.query.filter_by(user_id=userid).filter_by(status='Inactive').order_by('last_updated asc').all()
     posts = [post.get_public() for post in posts]
     return render_template('archive.html',entries=posts, userid=userid)
+
 @app.route('/api/post/unarchive/<int:userid>/<int:postid>', methods=['GET'])
 def unarchive_post(userid, postid):
     posts = Posts.query.filter_by(user_id=userid).filter_by(id=postid).filter_by(status='Inactive').first()
@@ -334,6 +344,17 @@ def get_post_as_pdf(userid, postid):
     db.session.commit()
     return jsonify({"filepath": posts.filepath})
 
+@app.route('/api/ratings/<int:userid>/<int:postid>', methods=['PUT','POST'])
+def update_ratings(userid, postid):
+    post = Posts.query.filter_by(user_id=userid).filter_by(id=postid).first()
+    if post is None:
+        abort(400)
+    if 'rating' not in request.json:
+        abort(400)
+    ratings = request.json.get('rating')
+    post.set_ratings(ratings)
+    db.session.commint()
+    return jsonify({"status":"ok"})
 
 @app.route('/api/test', methods=['GET'])
 def test_route():
