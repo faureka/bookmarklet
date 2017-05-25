@@ -6,7 +6,7 @@
     <div id="bannertext" style="background-color:#01549b; margin:0 auto; width: 100%;height: 40px;position: absolute;top: 0;left: 0; "> Text </div>
   </div>-->
     <div class="float-md-left">
-      <a href='{{ "/?userid=" + userid }}'/>Home</a>
+      <a id="home" href='{{ "/?userid=" + userid }}'/>Home</a>
     </div>
     <div>
       <div class="float-md-left">
@@ -28,7 +28,7 @@
         </form>
       </div>
       <div class="float-md-right">
-        <a href='{{ "/archive?userid=" + userid }}'/>Archive</a>
+        <a id='archive' href='{{ "/archive?userid=" + userid }}'/>Archive</a>
     </div>
     </div>
     <div>
@@ -46,7 +46,7 @@
           {% for entry in entries %}
           <tr>
             <th scope="row">{{ entry.id }}</th>
-            <td><a target="_blank" href= "{{ entry.url }}"> {{ entry.url }} </a></td>
+            <td><a id='{{ "booklink_" ~ entry.id }}'target="_blank" href= "{{ entry.url }}"> {{ entry.url }} </a></td>
             <td> {{ entry.ratings }}  </td>
             {% if entry.read %}
             <td> Read ( Unread <input type="checkbox" checked id="{{ entry.id }}" onclick="updateState(this);"/> ) 

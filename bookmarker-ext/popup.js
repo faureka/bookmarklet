@@ -29,7 +29,8 @@ function saveArticle(url, callback, errorCallback) {
       errorCallback('No response!');
       return;
     }
-    renderStatus("saved URL: " + response.post_url);
+    renderStatus("saved URL: " + response.post.url);
+    renderButton(response);
     callback(response);
   };
   x.onerror = function() {
@@ -42,6 +43,11 @@ function saveArticle(url, callback, errorCallback) {
 
 function renderStatus(statusText) {
   document.getElementById('status').textContent = statusText;
+}
+
+function renderButton(response) {
+  var elem = document.getElementById('pdf-link');
+  elem.setAttribute("href", 'https://localhost:8081/api/topdf/'+response.post.user_id + '/'+response.post.id);
 }
 
 document.addEventListener('DOMContentLoaded' , function() {
@@ -58,4 +64,8 @@ function processForm(e) {
         renderStatus('Error ' + errorMessage);
         });
     });
+}
+
+function toPdf(e) {
+  var url = 'https://localhost:8081/api/topdf'
 }

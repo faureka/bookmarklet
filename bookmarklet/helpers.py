@@ -1,7 +1,6 @@
 try:
     from urllib.parse import urlparse
 except ImportError:
-    print " Python 2 env detected trying urlparse lib "
     from urlparse import urlparse
 
 def check_if_wikipedia_link(str):
@@ -15,3 +14,4 @@ def update_wikipedia_link(string):
             urlparsed = urlparse(string)
             return urlparsed.scheme + "://" + "en.m.wikipedia.org" + urlparsed.path
     return string
+

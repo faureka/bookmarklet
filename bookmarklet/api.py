@@ -5,6 +5,7 @@ import bcrypt
 import ssl
 import subprocess
 import requests
+import json
 from flask import Flask, abort, request, jsonify, g, url_for, send_from_directory, render_template,redirect
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
@@ -12,28 +13,28 @@ from flask_httpauth import HTTPBasicAuth
 from sqlalchemy.dialects.postgresql import JSON
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
-
 try:
     from urllib.parse import urlparse
 except ImportError:
-    print " Python 2 env detected trying urlparse lib "
     from urlparse import urlparse
 
-
+from flask_common import Common
 from helpers import *
 
 # initialization
 app = Flask(__name__, static_url_path='/static', static_folder='static')
-app.config.from_pyfile('config.py')
-CORS(app)
+# app.debug = True
 if not os.path.exists(os.path.abspath(".") + "/static/pdfs"):
     os.makedirs(os.path.abspath(".") + "/static/pdfs")
 
 # extensions
+CORS(app)
+common = Common(app)
 db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
 #constants
+app.config.from_pyfile('config.py')
 
 class AutoSerialize(object):
     'Mixin for retrieving public fields of model in json-compatible format'
@@ -156,6 +157,7 @@ def verify_password(username_or_token, password):
     return True
 
 @app.route('/',methods=["GET"])
+@common.cache.cached(timeout=50)
 def index():
     user_id = request.args["userid"]
     posts = Posts.query.filter_by(user_id=user_id).filter_by(status='Active').order_by("read asc, date_created asc").all()
@@ -231,8 +233,8 @@ def add_post(userid):
             post.set_ratings()
             db.session.add(post)
             db.session.commit()
-            response = app.make_response(jsonify({"post_url":post.url, "post_date_created": post.date_created}))
-            return jsonify({"post_url":post.url, "post_date_created": post.date_created})
+            post = post.get_public()
+            return jsonify({"post":post})
         except Exception, e:
             print e
             return "error"
@@ -295,6 +297,7 @@ def search():
     return render_template('index.html', entries=posts, userid=userid)
 
 @app.route('/archive', methods=['GET'])
+@common.cache.cached(timeout=50)
 def archived_post():
     userid = request.args['userid']
     posts = Posts.query.filter_by(user_id=userid).filter_by(status='Inactive').order_by('last_updated asc').all()
@@ -356,6 +359,17 @@ def update_ratings(userid, postid):
     db.session.commint()
     return jsonify({"status":"ok"})
 
+@app.route('/api/posts/latest', methods=['GET'])
+@common.cache.cached(timeout=100)
+def get_k_latest_posts():
+    k = 10
+    if 'k' in request.args:
+        k = int(request.args.get("k"))
+    posts = Posts.query.filter_by(user_id=1).filter_by(status='Active')\
+            .filter_by(read=False).order_by("date_created desc").limit(k)
+    posts = [post.get_public() for post in posts]
+    return jsonify({"posts":posts})
+
 @app.route('/api/test', methods=['GET'])
 def test_route():
     try:
@@ -364,11 +378,5 @@ def test_route():
         print("No Cookie found")
     return jsonify({"test":"ok"})
 
-
-
-
-
 if __name__ == '__main__':
-    context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    context.load_cert_chain('certs/ssl.cert', 'certs/ssl.key')
-    app.run(threaded=True, port=5000)
+    common.serve()
