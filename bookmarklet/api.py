@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 import os
 import bcrypt
-import ssl
 import subprocess
 import requests
 import json
@@ -181,7 +180,7 @@ def new_user():
     response = app.make_response(response)
     act_app_cookie = {"uname":user.username, "uid":user.id}
     response.set_cookie('ACTApp',value=user.id, max_age=30000000, secure=True)
-    response.set_cookie('authToken',value=user.token, max_age=600, secure=True)
+    # response.set_cookie('authToken',value=user.token, max_age=600, secure=True)
     response.status_code = 201
     return response
 
