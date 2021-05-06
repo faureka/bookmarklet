@@ -10,7 +10,7 @@ dateparser==0.6.0
 Flask==0.12.2
 Flask-Cache==0.13.1
 Flask-Common==0.2.0
-Flask-Cors==3.0.2
+Flask-Cors==3.0.9
 Flask-HTTPAuth==2.2.0
 Flask-SQLAlchemy==1.0
 greenlet==0.4.12
